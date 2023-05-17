@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{Read};
 use std::net::{TcpStream, ToSocketAddrs};
+#[cfg(target_family = "unix")]
 use std::os::unix::net::UnixStream;
 use num_derive::FromPrimitive;
 use thiserror::Error;
@@ -55,6 +56,7 @@ pub enum ParseError {
 
 trait Source:std::io::Read {}
 impl Source for File {}
+#[cfg(target_family = "unix")]
 impl Source for UnixStream {}
 impl Source for TcpStream {}
 
@@ -113,7 +115,7 @@ impl Decoder {
     pub fn new_from_file<P: std::convert::AsRef<std::path::Path>>(path: P) -> Result<Self, ParseError> {
         let mut decoder = Decoder {
             id_to_stream: std::collections::HashMap::new(),
-            file: Box::new(std::fs::File::open(path)?),
+            file: Box::new(File::open(path)?),
             position: 0i64,
             file_data_position: 0,
             compression: ioheader_generated::Compression::None,
@@ -134,6 +136,7 @@ impl Decoder {
     }
 
 
+    #[cfg(target_family = "unix")]
     pub fn new_from_unix_stream<P: std::convert::AsRef<std::path::Path> + Clone>(
         path: P) -> Result<Self, ParseError> {
         let mut decoder = Decoder {
@@ -281,7 +284,7 @@ fn read_io_header(mut decoder: Decoder) -> Result<Decoder, ParseError> {
 
 #[derive(Debug, Clone)]
 pub struct Packet {
-    pub buffer: std::vec::Vec<u8>,
+    pub buffer: Vec<u8>,
     pub stream_id: u32,
 }
 
